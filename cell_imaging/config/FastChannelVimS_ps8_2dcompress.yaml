@@ -1,0 +1,106 @@
+batch_size: 32
+num_workers: 12
+num_nodes: 1
+
+pl_seed: 0
+
+patch_size: 8 # for now only implemented when both stride and patch size is same
+
+sort_channels: True
+use_norm_after_ssm: True
+rotate_every_block: True
+collapse_method: mean # mean, max
+
+training_epochs: 100
+warmup_epochs: 10
+lr: 0.001
+warmup_initial_lr: 0
+min_lr: 0.000001
+scaling_rule: linear
+weight_decay: 0.04
+weight_decay_end: 0.4
+num_classes: 161
+
+drop_path_rate: 0.05 
+
+
+channelvim_config:  
+  _target_: models.channel_wise_tokenization.models_channel_mamba_faster_2dcompress.channelvim_small_patch16_224_final_pool_mean_abs_pos_embed_with_noclstok_div2
+
+  pretrained: false
+  num_classes: ${num_classes}
+  drop_path_rate: ${drop_path_rate}
+  scan_order: 'Channel-First'   # Spatial-First, Channel-First  
+  hcs: True
+  channels: 8
+  sort_channels: ${sort_channels}
+  patch_size: ${patch_size}
+  stride: ${patch_size}
+  rotate_every_block: ${rotate_every_block}
+  use_norm_after_ssm: ${use_norm_after_ssm}
+  collapse_method: ${collapse_method}
+
+
+
+# Configuration for the dataloader
+data_config:
+  _target_: cell_imaging.datasets_supervised.load_DataModule
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  #augmentation
+  perturbation_list: ['compound']
+  channels: [0,1,2,3,4,5,6,7]
+  normalization_mean:
+    - 4.031743599139058
+    - 1.565935237087539
+    - 3.77367898215863
+    - 3.4605251427133257
+    - 4.1723172504050225
+    - 6.780529773318951
+    - 6.787385700135139
+    - 6.778120829362721
+  normalization_std:
+    - 17.318438884455695
+    - 12.015918256263747
+    - 16.966058078452495
+    - 15.064776266287147
+    - 17.964118200870608
+    - 21.638766346725316
+    - 21.670565699654457
+    - 21.639488585095584
+
+# Configuration for the learning rate schedule
+lr_config:
+  _target_: cell_imaging.utils.get_lr_scheduler
+  num_nodes: ${num_nodes}
+  dataloader: ${data_config}
+  batch_size: ${batch_size}
+  scheduling_epochs: ${training_epochs}
+  warmup_epochs: ${warmup_epochs}
+  lr: ${lr}
+  warmup_initial_lr: ${warmup_initial_lr}
+  min_lr: ${min_lr}
+  scaling_rule: ${scaling_rule}
+
+# Configuration for the weight decay schedule
+wd_config:
+  _target_: cell_imaging.utils.get_wd_scheduler
+  num_nodes: ${num_nodes}
+  scheduling_epochs: ${training_epochs}
+  dataloader: ${data_config}
+  weight_decay: ${weight_decay}
+  weight_decay_end: ${weight_decay_end}
+
+
+model_config:
+  _target_: cell_imaging.supervised.SupervisedModule
+  backbone: ${channelvim_config}
+  lr_schedule: ${lr_config}
+  wd_schedule: ${wd_config}
+  num_classes: ${num_classes}
+  label_smoothing: 0.0
+  mixup: 0.0
+  cutmix: 0.0
+  mixup_mode: 'batch'
+  mixup_prob: 1.0
+  mixup_switch_prob: 0.5

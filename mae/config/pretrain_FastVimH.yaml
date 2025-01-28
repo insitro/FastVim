@@ -1,0 +1,57 @@
+accum_iter: 1  #modify to keep overall batch size 4096
+batch_size: 128
+num_workers: 12
+num_nodes: 1
+
+pl_seed: 0
+img_size: 224
+patch_size: 16
+norm_pix_loss: true
+mask_ratio: 0.75
+in_chans: 3
+
+scanpath_type: "rowwise"
+rotate_every_block: True
+collapse_method: 'mean'
+use_norm_after_ssm: True
+
+training_epochs: 1600
+warmup_epochs: 40
+blr: 0.00015
+min_lr: 0
+weight_decay: 0.05
+
+vim_config:
+  # _target_: models.mae.fastvim_mae_vimdecoder.mae_FastVim_huge_dec512d2b
+  _target_: models.mae.fastvim_mae_vimdecoder_v2.mae_FastVim_huge_dec512d2b
+  img_size: ${img_size}
+  patch_size: ${patch_size}
+  stride: ${patch_size}
+  in_chans: ${in_chans}
+  norm_pix_loss: ${norm_pix_loss}
+  scanpath_type: ${scanpath_type}
+  rotate_every_block: ${rotate_every_block}
+  collapse_method: ${collapse_method}
+  use_norm_after_ssm: ${use_norm_after_ssm}
+
+# Configuration for the dataloader
+data_config:
+  _target_: mae.datasets_mae.load_DataModule
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  #augmentation
+  img_size: 224
+  hflip: 0.5
+  interpolation: 'bicubic'
+
+model_config:
+  _target_: mae.mae_imagenet.SSLModule
+  backbone: ${vim_config}
+  weight_decay: ${weight_decay}
+  blr: ${blr}
+  batch_size: ${batch_size}
+  warmup_epochs: ${warmup_epochs}
+  scheduling_epochs: ${training_epochs}
+  accum_iter: ${accum_iter}
+  min_lr: ${min_lr}
+  mask_ratio: ${mask_ratio}

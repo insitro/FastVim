@@ -1,0 +1,63 @@
+batch_size: 512  # make sure it is overall 4096
+num_workers: 12
+pretrained_checkpoint_path: '/path/to/ckpt'  # provide path to pretrained checkpoint from MAE/SSL
+num_nodes: 1
+
+pl_seed: 0
+
+img_size: 224
+patch_size: 16 # for now only implemented when both stride and patch size is same
+
+use_norm_after_ssm: True
+weight_decay: 0.0
+drop_path_rate: 0.0
+
+training_epochs: 90
+min_lr: 0.0
+blr: 0.1
+warmup_epochs: 10
+num_classes: 1000
+
+
+vim_config:
+  _target_: models.fastvim.vim_large_patch16_224_final_pool_mean_abs_pos_embed_with_midclstok_div2
+  pretrained: false
+  img_size: ${img_size}
+  num_classes: ${num_classes}
+  drop_path_rate: ${drop_path_rate}
+  channels: 3
+  patch_size: ${patch_size}
+  stride: ${patch_size}
+  use_norm_after_ssm: ${use_norm_after_ssm}
+  pretrained_checkpoint_path: ${pretrained_checkpoint_path}
+
+
+
+# Configuration for the dataloader
+data_config:
+  _target_: mae.datasets_finetune.load_DataModule
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  #augmentation
+  img_size: ${img_size}
+  hflip: 0.5
+  vflip: 0.0
+  eval_crop_ratio: 0.875
+  color_jitter: 0.0  # only randaug in fine tuning according to MAE
+  auto_augment: False
+  interpolation: 'bicubic'
+  re_prob: 0.0
+  re_mode: 'pixel'
+  re_count: 1
+
+
+model_config:
+  _target_: mae.linear_imagenet.SupervisedModule
+  backbone: ${vim_config}
+  num_classes: ${num_classes}
+  weight_decay: ${weight_decay}
+  blr: ${blr}
+  batch_size: ${batch_size}
+  warmup_epochs: ${warmup_epochs}
+  scheduling_epochs: ${training_epochs}
+  min_lr: ${min_lr}
