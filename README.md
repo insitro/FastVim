@@ -26,14 +26,16 @@ State Space Models (SSMs) with selective scan (Mamba) have been adapted into eff
 
 ## Environment setup
 
-- Python 3.11.9
+- Python 3.10.13
 ```
-  conda create -n fastvim -c conda-forge python=3.11.9 gcc=11.4 gxx=11.4
-  conda activate fastvim
+conda create -n fastvim python=3.10.13
+conda activate fastvim
 ```
 
-- torch 2.1.1 + cu12.1, and other requirements.
+- torch 2.1.1 + cu11.8, and other requirements.
 ```
+conda install --channel nvidia/label/cuda-11.8.0
+pip install torch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
 ```
 
